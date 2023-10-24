@@ -45,7 +45,7 @@ jobs:
 
       - name: Apply
         id: apply
-        run: terraform apply -input false -no-color tfplan
+        run: terraform apply -input=false -no-color tfplan
 
       - name: Comment
         uses: actions/github-script@v6
