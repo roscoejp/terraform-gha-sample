@@ -62,7 +62,7 @@ jobs:
             // 2. Prepare format of the comment
             const output = `#### Terraform Apply
 
-            > 💡 Merge triggered by ${{ github.event.sender }}
+            > 💡 Merge triggered by @${{ github.triggering_actor }}
 
             <details><summary>Output</summary>
             
@@ -94,7 +94,7 @@ jobs:
 
             </details>
 
-            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.tf_actions_working_dir }}\`, Workflow: \`${{ github.workflow }}\`*`;
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.TF_ROOT_DIR }}\`, Workflow: \`${{ github.workflow }}\`*`;
 
             // 3. If we have a comment, update it, otherwise create a new one
             if (botComment) {
