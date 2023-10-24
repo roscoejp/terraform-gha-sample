@@ -62,7 +62,7 @@ jobs:
             // 2. Prepare format of the comment
             const output = `#### Terraform Apply
 
-            > 💡 Merge triggered by ${{ github.event.sender }}
+            > 💡 Merge triggered by @${{ github.triggering_actor }}
 
             <details><summary>Output</summary>
             
