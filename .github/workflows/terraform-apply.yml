@@ -32,10 +32,16 @@ jobs:
         with:
           terraform_version: ${{ env.TF_VERSION }}
 
+      - name: Init
+        id: init
+        run: terraform init
+
       - name: Download Plan Artifact
-        uses: actions/download-artifact@v3
-        with:
-          name: ${{ env.PR_NUMBER }}-tfplan
+        uses: dawidd6/action-download-artifact@v2
+          with:
+            workflow: terraform-plan.yaml
+            pr: ${{ env.PR_NUMBER }}
+            name: ${{ env.PR_NUMBER }}-tf-plan
 
       - name: Apply
         id: apply
