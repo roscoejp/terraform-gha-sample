@@ -41,7 +41,7 @@ jobs:
         with:
           workflow: terraform-plan.yml
           pr: ${{ env.PR_NUMBER }}
-          name: ${{ env.PR_NUMBER }}-tf-plan
+          name: ${{ env.PR_NUMBER }}-tfplan
 
       - name: Apply
         id: apply
@@ -68,7 +68,7 @@ jobs:
             // 2. Prepare format of the comment
             const output = `#### Terraform Apply
 
-            > 💡 Merge triggered by @${{ github.triggering_actor }}
+            > 💡 Merge triggered by @${{ github.triggering_actor }}. [Link to the run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
             <details><summary>Output</summary>
             
