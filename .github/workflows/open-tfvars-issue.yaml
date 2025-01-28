@@ -27,7 +27,7 @@ jobs:
         with:
           issue-number: ${{ env.ISSUE_NUMBER }}
           body: |
-            Creating PR via automation. [Link](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            Creating PR via automation. [Link to the run (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
       - uses: stefanbuck/github-issue-parser@v3
         id: issue-parser
@@ -39,6 +39,7 @@ jobs:
       - run: cat issue.tfvars.json
 
       - name: Create Pull Request
+        id: botPR
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
@@ -57,7 +58,9 @@ jobs:
         with:
           comment-id: ${{ steps.botComment.outputs.comment-id }}
           body: |
-            PR #${{ steps.cpr.outputs.pull-request-number }} created via automation.
+            PR #${{ steps.botPR.outputs.pull-request-number }} successfully created.
+            This issue should auto-close once the PR is merged.
+            
             - PR created by [create-pull-request][1]
             - This issue comment created by [create-or-update-comment][2]
 
