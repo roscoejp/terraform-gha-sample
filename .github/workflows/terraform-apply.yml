@@ -1,28 +1,71 @@
-name: Terraform Apply
+name: Reusable Terraform apply
 
 on:
-  pull_request:
-    types:
-      - closed
-    branches:
-      - main
-
-env:
-  TF_ROOT_DIR: ./
-  TF_VERSION: "1.2.3"
-  PR_NUMBER: ${{ github.event.number }}
+  workflow_call:
+    inputs:
+      tf_root_dir:
+        description: "The root directory of the Terraform code to run"
+        required: false
+        type: string
+        default: "./"
+      tf_version:
+        description: "The Terraform version to run"
+        required: false
+        type: string
+        default: "1.2.3"
+      pr_number:
+        description: "The Pull Request number to run the Terraform plan against"
+        required: true
+        type: string
+    outputs: # Map the workflow outputs to job outputs
+      apply_outcome:
+        description: "Outcome of the Terraform apply command"
+        value: ${{ jobs.terraform.outputs.apply_outcome }}
+      apply_stdout:
+        description: "STDOUT of the Terraform apply command"
+        value: ${{ jobs.terraform.outputs.apply_stdout }}
 
 jobs:
+  start:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    outputs:
+      comment-id: ${{ steps.update_comment.outputs.comment-id }}
+    steps:
+      - name: Find Comment
+        uses: peter-evans/find-comment@v3
+        id: find_comment
+        with:
+          issue-number: ${{ inputs.pr_number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: Comment by GHA Apply Automation
+
+      - name: Create or update comment
+        id: update_comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find_comment.outputs.comment-id }}
+          issue-number: ${{ inputs.pr_number }}
+          body: |
+            <sub>*Comment by GHA Apply Automation. Do not remove.*</sub>
+            <sub>*Push Author: @${{ github.actor }}, Triggering Action: `${{ github.event_name }}`, Working Directory: `${{ inputs.tf_root_dir }}`, Workflow Name: `${{ github.workflow }}`*</sub>
+            Running Terraform Apply via automation. [Link to the run (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          edit-mode: replace
+  
   terraform:
-    if: github.event.pull_request.merged == true # Limit to PRs that are merged and closed
     name: Terraform Apply
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: ${{ env.TF_ROOT_DIR }}
+        working-directory: ${{ inputs.tf_root_dir }}
     permissions:
       contents: read
       pull-requests: write
+    outputs: # Map the job outputs to step outputs
+      apply_outcome: ${{ steps.apply.outcome }}
+      apply_stdout: ${{ steps.apply.stdout }}
 
     steps:
       - name: Checkout
@@ -31,70 +74,48 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: ${{ env.TF_VERSION }}
-
-      - name: Init
-        id: init
-        run: terraform init
+          terraform_version: ${{ inputs.tf_version }}
 
       - name: Download Plan Artifact
         uses: dawidd6/action-download-artifact@v2
         with:
           workflow: terraform-plan.yml
-          pr: ${{ env.PR_NUMBER }}
-          name: ${{ env.PR_NUMBER }}-tfplan
+          pr: ${{ inputs.pr_number }}
+          name: ${{ inputs.pr_number }}-tfplan.zip
           use_unzip: true
 
       - name: Apply
         id: apply
         run: terraform apply -input=false -no-color tfplan
-
-      - name: Comment
-        uses: actions/github-script@v6
-        if: github.event_name == 'pull_request'
-        env:
-          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+        continue-on-error: true
+ 
+  end:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Create or update comment
+        id: update_comment
+        uses: peter-evans/create-or-update-comment@v4
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            // 1. Retrieve existing bot comments for the PR
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            })
-            const botComment = comments.find(comment => {
-              return comment.user.type === 'Bot' && comment.body.includes('Comment made by Terraform GHA Workflow Automation. Do not remove.')
-            })
+          comment-id: ${{ needs.start.outputs.comment-id }}
+          issue-number: ${{ inputs.pr_number }}
+          body: |
+            Terraform Apply: `${{ needs.terraform.outputs.apply_outcome }}`
 
-            // 2. Prepare format of the comment
-            const output = `#### Terraform Apply
+            <details><summary>Show Apply Output</summary>
 
-            > 💡 Merge triggered by @${{ github.triggering_actor }}. [Link to the run (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
-
-            <details><summary>Output</summary>
-
-            \`\`\`terraform\n
-            ${{ steps.apply.outputs.stdout }}
-            \`\`\`
+            ```terraform
+            ${{ needs.terraform.outputs.apply_stdout }}
+            ```
 
             </details>
 
-            `;
-
-            // 3. If we have a comment, update it, otherwise create a new one
-            if (botComment) {
-              github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body: output + botComment.body
-              })
-            } else {
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: output
-              })
-            }
+            <sub>Issue comments created by [create-or-update-comment](https://github.com/peter-evans/create-or-update-comment)</sub>
+          edit-mode: append
+      
+      - name: Fail workflow on apply failure/skip
+        if: needs.terraform.outputs.apply_outcome != 'success'
+        run: |
+          exit 1

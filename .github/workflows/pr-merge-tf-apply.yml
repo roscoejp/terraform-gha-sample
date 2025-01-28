@@ -1,0 +1,24 @@
+name: Run Terraform apply on PR merge to main
+
+on:
+  pull_request:
+    types:
+      - closed
+    branches:
+      - main  # merges have the ref of the merged-into branch
+
+concurrency: main
+
+env:
+  TF_ROOT_DIR: ./
+  TF_VERSION: "1.2.3"
+  ISSUE_NUMBER: ${{ github.event.pull_request.number }}
+
+jobs:
+  apply:
+    uses: ./.github/workflows/terraform-apply.yml
+    with:
+      tf_root_dir: ${{ env.TF_ROOT_DIR }}
+      tf_version: ${{ env.TF_VERSION }}
+      pr_number: ${{ env.ISSUE_NUMBER }}
+

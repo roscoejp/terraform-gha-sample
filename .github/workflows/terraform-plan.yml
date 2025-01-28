@@ -1,22 +1,94 @@
-name: Terraform Plan
+name: Reusable Terraform plan
 
-on: pull_request
-
-env:
-  TF_ROOT_DIR: ./
-  TF_VERSION: "1.2.3"
-  PR_NUMBER: ${{ github.event.number }}
+on:
+  workflow_call:
+    inputs:
+      tf_root_dir:
+        description: "The root directory of the Terraform code to run"
+        required: false
+        type: string
+        default: "./"
+      tf_version:
+        description: "The Terraform version to run"
+        required: false
+        type: string
+        default: "1.2.3"
+      pr_number:
+        description: "The Pull Request number to run the Terraform plan against"
+        required: true
+        type: string
+    outputs: # Map the workflow outputs to job outputs
+      init_outcome:
+        description: "Outcome of the Terraform init command"
+        value: ${{ jobs.terraform.outputs.init_outcome }}     
+      init_stdout:
+        description: "STDOUT of the Terraform init command"
+        value: ${{ jobs.terraform.outputs.init_stdout }}
+      format_outcome:
+        description: "Outcome of the Terraform fmt command"
+        value: ${{ jobs.terraform.outputs.format_outcome }}
+      format_stdout:
+        description: "STDOUT of the Terraform fmt command"
+        value: ${{ jobs.terraform.outputs.format_stdout }}
+      validation_outcome:
+        description: "Outcome of the Terraform validate command"
+        value: ${{ jobs.terraform.outputs.validation_outcome }}
+      validation_stdout:
+        description: "STDOUT of the Terraform validate command"
+        value: ${{ jobs.terraform.outputs.validation_stdout }}
+      plan_outcome:
+        description: "Outcome of the Terraform plan command"
+        value: ${{ jobs.terraform.outputs.plan_outcome }}
+      plan_stdout:
+        description: "STDOUT of the Terraform plan command"
+        value: ${{ jobs.terraform.outputs.plan_stdout }}
 
 jobs:
-  terraform:
-    name: Terraform Plan
+  start:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: ${{ env.TF_ROOT_DIR }}
     permissions:
       contents: read
       pull-requests: write
+    outputs:
+      comment-id: ${{ steps.update_comment.outputs.comment-id }}
+    steps:
+      - name: Find Comment
+        uses: peter-evans/find-comment@v3
+        id: find_comment
+        with:
+          issue-number: ${{ inputs.pr_number }}
+          comment-author: 'github-actions[bot]'
+          body-includes: Comment by GHA Plan Automation
+
+      - name: Create or update comment
+        id: update_comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find_comment.outputs.comment-id }}
+          issue-number: ${{ inputs.pr_number }}
+          body: |
+            <sub>*Comment by GHA Plan Automation. Do not remove.*</sub>
+            <sub>*Push Author: @${{ github.actor }}, Triggering Action: `${{ github.event_name }}`, Working Directory: `${{ inputs.tf_root_dir }}`, Workflow Name: `${{ github.workflow }}`*</sub>
+            Running Terraform Plan via automation. [Link to the run (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          edit-mode: replace
+
+  terraform:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ${{ inputs.tf_root_dir }}
+    permissions:
+      contents: read
+      pull-requests: write
+    outputs: # Map the job outputs to step outputs
+      init_outcome: ${{ steps.init.outcome }}
+      init_stdout: ${{ steps.init.stdout }}
+      format_outcome: ${{ steps.fmt.outcome }}
+      format_stdout: ${{ steps.fmt.stdout }}
+      validation_outcome: ${{ steps.validate.outcome }}
+      validation_stdout: ${{ steps.validate.stdout }}
+      plan_outcome: ${{ steps.plan.outcome }}
+      plan_stdout: ${{ steps.plan.stdout }}
 
     steps:
       - name: Checkout
@@ -25,90 +97,99 @@ jobs:
       - name: Setup Terraform
         uses: hashicorp/setup-terraform@v2
         with:
-          terraform_version: ${{ env.TF_VERSION }}
+          terraform_version: ${{ inputs.tf_version }}
 
       - name: Init
         id: init
         run: terraform init
+        continue-on-error: true
 
       - name: Format
+        if: steps.init.outcome == 'success' # only if init passes
         id: fmt
         run: terraform fmt -check
         continue-on-error: true
 
       - name: Validate
+        if: steps.init.outcome == 'success' # only if init passes
         id: validate
         run: terraform validate -no-color
+        continue-on-error: true
 
       - name: Plan
+        if: steps.validate.outcome == 'success' # only if validation passes
         id: plan
         run: terraform plan -no-color -out tfplan
+        continue-on-error: true
 
-      - name: Save Artifact
+      - name: Upload artifact
+        if: steps.plan.outcome == 'success' # only save if plan passes
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ env.PR_NUMBER }}-tfplan
+          name: ${{ inputs.pr_number }}-tfplan.zip
           path: ./
-          if-no-files-found: error
-
-      - name: Comment
-        uses: actions/github-script@v6
-        if: github.event_name == 'pull_request'
-        env:
-          PLAN: "terraform\n${{ steps.plan.outputs.stdout }}"
+          if-no-files-found: error # will fail pipeline if nothing found
+  
+  end:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Create or update comment
+        id: update_comment
+        uses: peter-evans/create-or-update-comment@v4
         with:
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          script: |
-            // 1. Retrieve existing bot comments for the PR
-            const { data: comments } = await github.rest.issues.listComments({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              issue_number: context.issue.number,
-            })
-            const botComment = comments.find(comment => {
-              return comment.user.type === 'Bot' && comment.body.includes('Comment made by Terraform GHA Workflow Automation')
-            })
+          comment-id: ${{ needs.start.outputs.comment-id }}
+          issue-number: ${{ inputs.pr_number }}
+          body: |
+            Terraform init: `${{ needs.terraform.outputs.init_outcome }}`
 
-            // 2. Prepare format of the comment
-            const output = `#### Terraform Format Check: \`${{ steps.fmt.outcome }}\`
-            #### Terraform Initialization: \`${{ steps.init.outcome }}\`
-            #### Terraform Validation: \`${{ steps.validate.outcome }}\`
-            <details><summary>Validation Output</summary>
+            <details><summary>Show Init Output</summary>
 
-            \`\`\`terraform\n
-            ${{ steps.validate.outputs.stdout }}
-            \`\`\`
+            ```
+            ${{ needs.terraform.outputs.init_stdout }}
+            ```
 
             </details>
 
-            #### Terraform Plan: \`${{ steps.plan.outcome }}\`
+            Terraform Format: `${{ needs.terraform.outputs.format_outcome }}`
 
-            > 💡 Plan saved to GH artifacts as \`${{ env.PR_NUMBER }}-tfplan.zip\` (valid for 90 days by default)
+            <details><summary>Show Format Output</summary>
 
-            <details><summary>Show Plan</summary>
-
-            \`\`\`\n
-            ${process.env.PLAN}
-            \`\`\`
+            ```
+            ${{ needs.terraform.outputs.format_stdout }}
+            ```
 
             </details>
 
-            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.TF_ROOT_DIR }}\`, Workflow: \`${{ github.workflow }}\`*
-            <sub>*Comment made by Terraform GHA Workflow Automation. Do not remove.*</sub>`;
+            Terraform Validate: `${{ needs.terraform.outputs.validation_outcome }}`
 
-            // 3. If we have a comment, update it, otherwise create a new one
-            if (botComment) {
-              github.rest.issues.updateComment({
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                comment_id: botComment.id,
-                body: output
-              })
-            } else {
-              github.rest.issues.createComment({
-                issue_number: context.issue.number,
-                owner: context.repo.owner,
-                repo: context.repo.repo,
-                body: output
-              })
-            }
+            <details><summary>Show Validation Output</summary>
+
+            ```
+            ${{ needs.terraform.outputs.validation_stdout }}
+            ```
+
+            </details>
+
+            Terraform Plan: `${{ needs.terraform.outputs.plan_outcome }}`
+
+            <details><summary>Show Plan Output</summary>
+
+            ```terraform
+            ${{ needs.terraform.outputs.plan_stdout }}
+            ```
+
+            </details>
+
+            Working directory saved to GH artifacts as `${{ inputs.pr_number }}-tfplan.zip`. [Link to the artifact (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)
+
+            <sub>Pull Request created by [create-pull-request](https://github.com/peter-evans/create-pull-request])</sub>
+            <sub>Issue comments created by [create-or-update-comment](https://github.com/peter-evans/create-or-update-comment)</sub>
+          edit-mode: append
+
+      - name: Fail workflow on plan failure/skip
+        if: needs.terraform.outputs.plan_outcome != 'success'
+        run: |
+          exit 1

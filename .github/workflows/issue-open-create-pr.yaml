@@ -1,0 +1,154 @@
+name: Process enhancement issues
+
+on:
+  issues:
+    types: [opened]
+
+concurrency: main
+
+env:
+  TF_ROOT_DIR: ./
+  TF_VERSION: "1.2.3"
+  ISSUE_NUMBER: ${{ github.event.pull_request.number }}
+
+jobs:
+  start:
+    if: contains(github.event.issue.labels.*.name, 'enhancement')
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      issues: write
+      pull-requests: write
+    outputs:
+      pr_number: ${{ steps.create_pr.outputs.pull-request-number }}
+      comment-id: ${{ steps.update_comment.outputs.comment-id }}
+    steps:
+      - name: Find Comment
+        uses: peter-evans/find-comment@v3
+        id: find_comment
+        with:
+          issue-number: ${{ env.ISSUE_NUMBER }}
+          comment-author: 'github-actions[bot]'
+          body-includes: Comment by GHA Automation
+
+      - name: Create or update comment
+        id: update_comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.find_comment.outputs.comment-id }}
+          issue-number: ${{ env.ISSUE_NUMBER }}
+          body: |
+            <sub>*Comment by GHA Issue Automation. Do not remove.*</sub>
+            Creating PR via automation. [Link to the run (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+          edit-mode: replace
+
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16"
+
+      - uses: stefanbuck/github-issue-parser@v3
+        id: issue-parser
+        with:
+          template-path: .github/ISSUE_TEMPLATE/tfvars_enhancement.yml
+
+      - run: echo '${{ steps.issue-parser.outputs.jsonString }}' > issue.tfvars.json
+
+      - run: cat issue.tfvars.json
+
+      - name: Create pull request # PRs created using the API don't trigger other workflows...
+        id: create_pr
+        uses: peter-evans/create-pull-request@v7
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          title: Changes by create-pull-request action for issue ${{ env.ISSUE_NUMBER }}
+          body: |
+            Fixes #${{ env.ISSUE_NUMBER }}
+            
+            <sub>Created by [create-pull-request](https://github.com/peter-evans/create-pull-request)</sub>
+          base-branch: main
+          branch: issue/${{ env.ISSUE_NUMBER }}
+          branch-suffix: short-commit-hash
+
+      - name: Create or update comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ steps.update_comment.outputs.comment-id }}
+          issue-number: ${{ env.ISSUE_NUMBER }}
+          body: |
+            PR #${{ steps.create_pr.outputs.pull-request-number }} successfully created.
+            This issue should auto-close once the PR is merged.
+
+            > 💡 Note: This comment will not be updated with changes to [the PR](${{ needs.start.outputs.pr_number }}). Please follow changes there, this message is informational only. 
+          edit-mode: append
+
+  plan:
+    uses: ./.github/workflows/terraform-plan.
+    permissions:
+      contents: read
+      pull-requests: write
+    with:
+      tf_root_dir: ${{ env.TF_ROOT_DIR }}
+      tf_version: ${{ env.TF_VERSION }}
+      pr_number: ${{ needs.start.outputs.pr_number }}
+
+  end:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+    steps:
+      - name: Create or update comment
+        id: update_comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          comment-id: ${{ needs.start.outputs.comment-id }}
+          issue-number: ${{ env.ISSUE_NUMBER }}
+          body: |
+            Terraform init: `${{ needs.plan.outputs.init_outcome }}`
+
+            <details><summary>Show Init Output</summary>
+
+            ```
+            ${{ needs.plan.outputs.init_stdout }}
+            ```
+
+            </details>
+
+            Terraform Format: `${{ needs.plan.outputs.format_outcome }}`
+
+            <details><summary>Show Format Output</summary>
+
+            ```
+            ${{ needs.plan.outputs.format_stdout }}
+            ```
+
+            </details>
+
+            Terraform Validate: `${{ needs.plan.outputs.validation_outcome }}`
+
+            <details><summary>Show Validation Output</summary>
+
+            ```
+            ${{ needs.plan.outputs.validation_stdout }}
+            ```
+
+            </details>
+
+            Terraform Plan: `${{ needs.plan.outputs.plan_outcome }}`
+
+            <details><summary>Show Plan Output</summary>
+
+            ```terraform
+            ${{ needs.plan.outputs.plan_stdout }}
+            ```
+
+            </details>
+
+            Working directory saved to GH artifacts as `${{ needs.start.outputs.pr_number }}-tfplan.zip`. [Link to the artifact (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)
+
+            <sub>Pull Request created by [create-pull-request](https://github.com/peter-evans/create-pull-request])</sub>
+            <sub>Issue comments created by [create-or-update-comment](https://github.com/peter-evans/create-or-update-comment)</sub>
+            <sub>Github issue to JSON conversion by [github-issue-parser](https://github.com/marketplace/actions/github-issue-parser)</sub>
+          edit-mode: append
