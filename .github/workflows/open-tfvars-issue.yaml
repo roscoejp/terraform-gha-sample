@@ -14,13 +14,12 @@ jobs:
     if: contains(github.event.issue.labels.*.name, 'enhancement')
     name: Create PR from TFVARS issue
     runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      issues: write
+      pull-requests: write
+
     steps:
-      - uses: actions/checkout@v2
-
-      - uses: actions/setup-node@v2
-        with:
-          node-version: "16"
-
       - name: Create issue comment
         id: botComment
         uses: peter-evans/create-or-update-comment@v4
@@ -28,6 +27,12 @@ jobs:
           issue-number: ${{ env.ISSUE_NUMBER }}
           body: |
             Creating PR via automation. [Link to the run (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: "16"
 
       - uses: stefanbuck/github-issue-parser@v3
         id: issue-parser
