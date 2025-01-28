@@ -48,14 +48,11 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          title: Fixes #${{ env.ISSUE_NUMBER }}
+          title: "Fixes Issue #${{ env.ISSUE_NUMBER }}"
           body: |
-            Update tfvars via automation.
-
-              - Fixes #${{ env.ISSUE_NUMBER }}
-              - Created by [create-pull-request][1]
-
-              [1]: https://github.com/peter-evans/create-pull-request
+            Fixes #${{ env.ISSUE_NUMBER }}
+            
+            <sub>Created by [create-pull-request][https://github.com/peter-evans/create-pull-request]</sub>
           base-branch: main
           branch: issue/${{ env.ISSUE_NUMBER }}
 
@@ -67,8 +64,5 @@ jobs:
             PR #${{ steps.botPR.outputs.pull-request-number }} successfully created.
             This issue should auto-close once the PR is merged.
 
-            - PR created by [create-pull-request][1]
-            - This issue comment created by [create-or-update-comment][2]
-
-            [1]: https://github.com/peter-evans/create-pull-request
-            [2]: https://github.com/peter-evans/create-or-update-comment
+            <sub>PR created by [create-pull-request][https://github.com/peter-evans/create-pull-request]</sub>
+            <sub>Issue comment created by [create-or-update-comment][https://github.com/peter-evans/create-or-update-comment]</sub>
