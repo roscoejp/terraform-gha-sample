@@ -1,7 +1,7 @@
 name: Add a new TF variable
 description: Will trigger an update to the `issue.tfvars.json` file.
 title: "[TFVARS]: "
-labels: ["tfvars"]
+labels: ["enhancement"]
 
 # more input types here in GH Docs
 # https://docs.github.com/en/communities/using-templates-to-encourage-useful-issues-and-pull-requests/syntax-for-issue-forms#about-yaml-syntax-for-issue-forms
