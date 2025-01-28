@@ -55,6 +55,7 @@ jobs:
             <sub>Created by [create-pull-request](https://github.com/peter-evans/create-pull-request)</sub>
           base-branch: main
           branch: issue/${{ env.ISSUE_NUMBER }}
+          branch-suffix: short-commit-hash
 
       - name: Update issue comment
         uses: peter-evans/create-or-update-comment@v4
