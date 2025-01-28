@@ -48,7 +48,7 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          title: "Fixes Issue #${{ env.ISSUE_NUMBER }}"
+          title: Fixes Issue ${{ env.ISSUE_NUMBER }}
           body: |
             Fixes #${{ env.ISSUE_NUMBER }}
             
