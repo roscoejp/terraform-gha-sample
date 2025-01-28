@@ -11,7 +11,7 @@ env:
 
 jobs:
   open_tfvars_issue:
-    if: ${{ github.event.label.name == 'tfvars' }}
+    if: contains(github.event.issue.labels.*.name, 'tfvars')
     name: Create PR from TFVARS issue
     runs-on: ubuntu-latest
     steps:
