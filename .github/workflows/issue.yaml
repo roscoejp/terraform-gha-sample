@@ -22,15 +22,27 @@ jobs:
 
       - run: cat issue.tfvars.json
 
-      - name: Commit changes
-        shell: bash
-        run: |
-          git config --global user.email "github-actions[bot]@users.noreply.github.com" && \
-          git config --global user.name "github-actions[bot]" && \
-          git stage issue.tfvars.json && \
-          git commit -m 'Update tfvars file' && \
-          git push
-
-      - uses: peter-evans/close-issue@v1
+      - name: Create Pull Request
+        uses: peter-evans/create-pull-request@v7
         with:
-          comment: TF variable file updated.
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: |
+            Update tfvars via automation.
+
+              - Fixes #${{ github.event.issue.number }}
+              - Created by [create-pull-request][1]
+
+              [1]: https://github.com/peter-evans/create-pull-request
+          branch: issue/${{ github.event.issue.number }}
+
+      - name: Create issue comment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ github.event.issue.number }}
+          body: |
+            PR #${{ steps.cpr.outputs.pull-request-number }} created via automation.
+            - PR created by [create-pull-request][1]
+            - This issue comment created by [create-or-update-comment][2]
+
+            [1]: https://github.com/peter-evans/create-pull-request
+            [2]: https://github.com/peter-evans/create-or-update-comment
