@@ -1,4 +1,4 @@
-name: "Terraform Apply"
+name: Terraform Apply
 
 on:
   pull_request:
@@ -8,13 +8,13 @@ on:
       - main
 
 env:
-  TF_ROOT_DIR: "./"
+  TF_ROOT_DIR: ./
   TF_VERSION: "1.2.3"
   PR_NUMBER: ${{ github.event.number }}
 
 jobs:
   terraform:
-    if: github.event.pull_request.merged == true  # Limit to PRs that are merged and closed
+    if: github.event.pull_request.merged == true # Limit to PRs that are merged and closed
     name: Terraform Apply
     runs-on: ubuntu-latest
     defaults:
@@ -73,7 +73,7 @@ jobs:
             > 💡 Merge triggered by @${{ github.triggering_actor }}. [Link to the run (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
             <details><summary>Output</summary>
-            
+
             \`\`\`terraform\n
             ${{ steps.apply.outputs.stdout }}
             \`\`\`

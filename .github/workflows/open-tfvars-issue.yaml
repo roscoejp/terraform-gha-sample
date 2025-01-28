@@ -1,17 +1,33 @@
 name: Process issue
+
 on:
   issues:
     types: opened
-concurrency: 'main'
+
+concurrency: main
+
+env:
+  ISSUE_NUMBER: ${{ github.event.issue.number }}
+
 jobs:
-  process_issue:
+  open_tfvars_issue:
+    if: ${{ github.event.label.name == 'tfvars' }}
+    name: Create PR from TFVARS issue
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
 
       - uses: actions/setup-node@v2
         with:
-          node-version: '16'
+          node-version: "16"
+
+      - name: Create issue comment
+        id: botComment
+        uses: peter-evans/create-or-update-comment@v4
+        with:
+          issue-number: ${{ env.ISSUE_NUMBER }}
+          body: |
+            Creating PR via automation. [Link](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
       - uses: stefanbuck/github-issue-parser@v3
         id: issue-parser
@@ -29,16 +45,17 @@ jobs:
           commit-message: |
             Update tfvars via automation.
 
-              - Fixes #${{ github.event.issue.number }}
+              - Fixes #${{ env.ISSUE_NUMBER }}
               - Created by [create-pull-request][1]
 
               [1]: https://github.com/peter-evans/create-pull-request
-          branch: issue/${{ github.event.issue.number }}
+          base-branch: main
+          branch: issue/${{ env.ISSUE_NUMBER }}
 
-      - name: Create issue comment
+      - name: Update issue comment
         uses: peter-evans/create-or-update-comment@v4
         with:
-          issue-number: ${{ github.event.issue.number }}
+          comment-id: ${{ steps.botComment.outputs.comment-id }}
           body: |
             PR #${{ steps.cpr.outputs.pull-request-number }} created via automation.
             - PR created by [create-pull-request][1]
