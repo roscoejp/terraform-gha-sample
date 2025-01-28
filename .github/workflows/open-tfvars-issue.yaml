@@ -43,7 +43,8 @@ jobs:
         uses: peter-evans/create-pull-request@v7
         with:
           token: ${{ secrets.GITHUB_TOKEN }}
-          commit-message: |
+          title: Fixes #${{ env.ISSUE_NUMBER }}
+          body: |
             Update tfvars via automation.
 
               - Fixes #${{ env.ISSUE_NUMBER }}
@@ -60,7 +61,7 @@ jobs:
           body: |
             PR #${{ steps.botPR.outputs.pull-request-number }} successfully created.
             This issue should auto-close once the PR is merged.
-            
+
             - PR created by [create-pull-request][1]
             - This issue comment created by [create-or-update-comment][2]
 
