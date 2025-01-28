@@ -50,7 +50,7 @@ jobs:
         uses: actions/upload-artifact@v3
         with:
           name: ${{ env.PR_NUMBER }}-tfplan
-          path: tfplan
+          path: ./
           if-no-files-found: error
 
       - name: Comment
@@ -68,13 +68,13 @@ jobs:
               issue_number: context.issue.number,
             })
             const botComment = comments.find(comment => {
-              return comment.user.type === 'Bot' && comment.body.includes('Terraform Format and Style')
+              return comment.user.type === 'Bot' && comment.body.includes('Comment made by Terraform GHA Workflow Automation')
             })
 
             // 2. Prepare format of the comment
-            const output = `#### Terraform Format and Style 🖌\`${{ steps.fmt.outcome }}\`
-            #### Terraform Initialization ⚙️\`${{ steps.init.outcome }}\`
-            #### Terraform Validation 🤖\`${{ steps.validate.outcome }}\`
+            const output = `#### Terraform Format Check: \`${{ steps.fmt.outcome }}\`
+            #### Terraform Initialization: \`${{ steps.init.outcome }}\`
+            #### Terraform Validation: \`${{ steps.validate.outcome }}\`
             <details><summary>Validation Output</summary>
 
             \`\`\`terraform\n
@@ -83,9 +83,9 @@ jobs:
 
             </details>
 
-            #### Terraform Plan 📖\`${{ steps.plan.outcome }}\`
+            #### Terraform Plan: \`${{ steps.plan.outcome }}\`
 
-            > 💡 Plan saved to GH artifacts as \`${{ env.PR_NUMBER }}-tfplan\`. This artifact will expire in 90 days.
+            > 💡 Plan saved to GH artifacts as \`${{ env.PR_NUMBER }}-tfplan.zip\` (valid for 90 days by default)
 
             <details><summary>Show Plan</summary>
 
@@ -95,7 +95,8 @@ jobs:
 
             </details>
 
-            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.TF_ROOT_DIR }}\`, Workflow: \`${{ github.workflow }}\`*`;
+            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.TF_ROOT_DIR }}\`, Workflow: \`${{ github.workflow }}\`*
+            <sub>*Comment made by Terraform GHA Workflow Automation. Do not remove.*</sub>`;
 
             // 3. If we have a comment, update it, otherwise create a new one
             if (botComment) {

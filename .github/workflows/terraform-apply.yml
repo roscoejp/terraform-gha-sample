@@ -43,6 +43,7 @@ jobs:
           workflow: terraform-plan.yml
           pr: ${{ env.PR_NUMBER }}
           name: ${{ env.PR_NUMBER }}-tfplan
+          use_unzip: true
 
       - name: Apply
         id: apply
@@ -63,13 +64,13 @@ jobs:
               issue_number: context.issue.number,
             })
             const botComment = comments.find(comment => {
-              return comment.user.type === 'Bot' && comment.body.includes('Terraform Apply')
+              return comment.user.type === 'Bot' && comment.body.includes('Comment made by Terraform GHA Workflow Automation. Do not remove.')
             })
 
             // 2. Prepare format of the comment
             const output = `#### Terraform Apply
 
-            > 💡 Merge triggered by @${{ github.triggering_actor }}. [Link to the run](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+            > 💡 Merge triggered by @${{ github.triggering_actor }}. [Link to the run (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
 
             <details><summary>Output</summary>
             
@@ -78,8 +79,7 @@ jobs:
             \`\`\`
 
             </details>
-
-            *Pusher: @${{ github.actor }}, Action: \`${{ github.event_name }}\`, Working Directory: \`${{ env.TF_ROOT_DIR }}\`, Workflow: \`${{ github.workflow }}\`*`;
+            `;
 
             // 3. If we have a comment, update it, otherwise create a new one
             if (botComment) {
@@ -87,7 +87,7 @@ jobs:
                 owner: context.repo.owner,
                 repo: context.repo.repo,
                 comment_id: botComment.id,
-                body: output
+                body: output + botComment.body
               })
             } else {
               github.rest.issues.createComment({
