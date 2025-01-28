@@ -4,5 +4,5 @@ output "hash" {
 }
 
 output "tfvars" {
-  value = filesha256("issue.tfavrs.json")
+  value = filesha256("issue.tfvars.json")
 }
