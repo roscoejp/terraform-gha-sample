@@ -1,0 +1,36 @@
+name: Process issue
+on:
+  issues:
+    types: opened
+concurrency: 'main'
+jobs:
+  process_issue:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+
+      - uses: actions/setup-node@v2
+        with:
+          node-version: '16'
+
+      - uses: stefanbuck/github-issue-parser@v3
+        id: issue-parser
+        with:
+          template-path: .github/ISSUE_TEMPLATE/issue_tfvars.yml
+
+      - run: echo '${{ steps.issue-parser.outputs.jsonString }}' > issue.tfvars.json
+
+      - run: cat issue.tfvars.json
+
+      - name: Commit changes
+        shell: bash
+        run: |
+          git config --global user.email "github-actions[bot]@users.noreply.github.com" && \
+          git config --global user.name "github-actions[bot]" && \
+          git stage issue.tfvars.json && \
+          git commit -m 'Update tfvars file' && \
+          git push
+
+      - uses: peter-evans/close-issue@v1
+        with:
+          comment: TF variable file updated.

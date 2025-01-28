@@ -74,12 +74,12 @@ jobs:
 
             <details><summary>Output</summary>
             
-            \`\`\`terraform\n
+            \`\`\`\n
             ${{ steps.apply.outputs.stdout }}
             \`\`\`
 
             </details>
-            
+
             `;
 
             // 3. If we have a comment, update it, otherwise create a new one
