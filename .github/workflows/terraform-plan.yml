@@ -77,7 +77,7 @@ jobs:
             #### Terraform Validation: \`${{ steps.validate.outcome }}\`
             <details><summary>Validation Output</summary>
 
-            \`\`\`\n
+            \`\`\`terraform\n
             ${{ steps.validate.outputs.stdout }}
             \`\`\`
 
