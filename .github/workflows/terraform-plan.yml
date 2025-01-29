@@ -44,7 +44,7 @@ on:
         value: ${{ jobs.terraform.outputs.plan_stdout }}
 
 jobs:
-  start:
+  create_comment:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -122,8 +122,8 @@ jobs:
           path: ./
           if-no-files-found: error # will fail pipeline if nothing found
 
-  end:
-    needs: terraform
+  output:
+    needs: [terraform, create_comment]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -132,7 +132,7 @@ jobs:
       - name: Update comment
         uses: edumserrano/find-create-or-update-comment@v3
         with:
-          issue-number: ${{ github.event.issue.number }}
+          issue-number: ${{ inputs.pr_number }}
           body-includes: "<!-- Comment by GHA Plan Automation -->"
           comment-author: "github-actions[bot]"
           body: |

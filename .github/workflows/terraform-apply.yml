@@ -26,7 +26,7 @@ on:
         value: ${{ jobs.terraform.outputs.apply_stdout }}
 
 jobs:
-  start:
+  create_comment:
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -80,8 +80,8 @@ jobs:
         run: terraform apply -input=false -no-color tfplan
         continue-on-error: true
 
-  end:
-    needs: terraform
+  output:
+    needs: [terraform, create_comment]
     runs-on: ubuntu-latest
     permissions:
       contents: read

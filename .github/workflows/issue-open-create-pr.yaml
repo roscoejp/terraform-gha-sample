@@ -7,16 +7,12 @@ on:
 concurrency: main
 
 jobs:
-  start:
+  create_comment: # filter by a tag that the template uses so we limit runs
     if: contains(github.event.issue.labels.*.name, 'enhancement')
     runs-on: ubuntu-latest
     permissions:
-      contents: write
+      contents: read
       issues: write
-      pull-requests: write
-    outputs:
-      pr_number: ${{ steps.create_pr.outputs.pull-request-number }}
-      comment-id: ${{ steps.update_comment.outputs.comment-id }}
     steps:
       - name: Update comment
         uses: edumserrano/find-create-or-update-comment@v3
@@ -26,10 +22,20 @@ jobs:
           comment-author: "github-actions[bot]"
           body: |
             <!-- Comment by GHA Automation -->
-            > 💡 Note: This comment is informational only and will not be updated with changes to [the PR](${{ needs.start.outputs.pr_number }}). 
+            > 💡 Note: This comment is informational only and will not be updated with changes to the PR or additional workflow runs. 
+
             Creating PR via automation. [Link to the run (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
           edit-mode: replace
 
+  create_pr:
+    needs: create_comment
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+    outputs:
+      pr_number: ${{ steps.create_pr.outputs.pull-request-number }}
+    steps:
       - uses: actions/checkout@v2
 
       - uses: actions/setup-node@v2
@@ -71,18 +77,15 @@ jobs:
           edit-mode: append
 
   plan: # call the plan job since PRs created using the default token don't trigger other workflows
-    needs: start
+    needs: create_pr
     uses: ./.github/workflows/terraform-plan.yml
-    permissions:
-      contents: read
-      pull-requests: write
     with:
       tf_root_dir: "./"
       tf_version: "1.2.3"
-      pr_number: ${{ needs.start.outputs.pr_number }}
+      pr_number: ${{ needs.create_pr.outputs.pr_number }}
 
-  end:
-    needs: plan
+  output:
+    needs: [plan, create_comment]
     runs-on: ubuntu-latest
     permissions:
       contents: read
