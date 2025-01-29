@@ -97,11 +97,9 @@ jobs:
           comment-author: "github-actions[bot]"
           body: |
             Terraform Apply: `${{ needs.terraform.outputs.apply_outcome }}` <details><summary>Show Apply Output</summary>
-
-            ```terraform
+            \`\`\`terraform
             ${{ needs.terraform.outputs.apply_stdout }}
-            ```
-
+            \`\`\`
             </details>
 
             <sub>Issue comments created by [find-create-or-update-comment](https://github.com/marketplace/actions/find-create-or-update-comment)</sub>
