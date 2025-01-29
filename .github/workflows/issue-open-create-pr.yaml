@@ -25,6 +25,8 @@ jobs:
             > 💡 Note: This comment is informational only and will not be updated with changes to the PR or additional workflow runs. 
 
             Creating PR via automation. [Link to the run (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            ---
           edit-mode: replace
 
   create_pr:
@@ -103,30 +105,38 @@ jobs:
           comment-author: "github-actions[bot]"
           body: |
             Terraform init: `${{ needs.plan.outputs.init_outcome }}` <details><summary>Show Init Output</summary>
-            ```
+
+            ```terraform
             ${{ needs.plan.outputs.init_stdout }}
             ```
+
             </details>
 
             Terraform Format: `${{ needs.plan.outputs.format_outcome }}` <details><summary>Show Format Output</summary>
-            ```
+
+            ```terraform
             ${{ needs.plan.outputs.format_stdout }}
             ```
+
             </details>
 
             Terraform Validate: `${{ needs.plan.outputs.validation_outcome }}` <details><summary>Show Validation Output</summary>
-            ```
+
+            ```terraform
             ${{ needs.plan.outputs.validation_stdout }}
             ```
+
             </details>
 
             Terraform Plan: `${{ needs.plan.outputs.plan_outcome }}` <details><summary>Show Plan Output</summary>
+
             ```terraform
             ${{ needs.plan.outputs.plan_stdout }}
             ```
+            
             </details>
 
-            Working directory saved to GH artifacts as `${{ needs.start.outputs.pr_number }}-tfplan.zip`. [Link to the artifact (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)
+            Working directory saved to GH artifacts as `${{ needs.create_pr.outputs.pr_number }}-tfplan.zip`. [Link to the artifact (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)
 
             <sub>Pull Request created by [create-pull-request](https://github.com/peter-evans/create-pull-request])</sub>
             <sub>Issue comments created by [find-create-or-update-comment](https://github.com/marketplace/actions/find-create-or-update-comment)</sub>

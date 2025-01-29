@@ -11,6 +11,7 @@ concurrency: main
 
 jobs:
   apply:
+    if: github.event.pull_request.merged == true  # Limit to PRs that are merged and closed
     uses: ./.github/workflows/terraform-apply.yml
     permissions:
       contents: read

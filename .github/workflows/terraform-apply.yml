@@ -44,6 +44,8 @@ jobs:
             <!-- Comment by GHA Apply Automation -->
             <sub>*Push Author: @${{ github.actor }}, Triggering Action: `${{ github.event_name }}`, Working Directory: `${{ inputs.tf_root_dir }}`, Workflow Name: `${{ github.workflow }}`*</sub>
             Running Terraform Apply via automation. [Link to the run (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            ---
           edit-mode: replace
 
   terraform:
@@ -95,9 +97,11 @@ jobs:
           comment-author: "github-actions[bot]"
           body: |
             Terraform Apply: `${{ needs.terraform.outputs.apply_outcome }}` <details><summary>Show Apply Output</summary>
+
             ```terraform
             ${{ needs.terraform.outputs.apply_stdout }}
             ```
+
             </details>
 
             <sub>Issue comments created by [find-create-or-update-comment](https://github.com/marketplace/actions/find-create-or-update-comment)</sub>

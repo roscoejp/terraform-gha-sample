@@ -62,6 +62,8 @@ jobs:
             <!-- Comment by GHA Plan Automation -->
             <sub>*Push Author: @${{ github.actor }}, Triggering Action: `${{ github.event_name }}`, Working Directory: `${{ inputs.tf_root_dir }}`, Workflow Name: `${{ github.workflow }}`*</sub>
             Running Terraform Plan via automation. [Link to the run (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
+
+            ---
           edit-mode: replace
 
   terraform:
@@ -137,27 +139,35 @@ jobs:
           comment-author: "github-actions[bot]"
           body: |
             Terraform init: `${{ needs.terraform.outputs.init_outcome }}` <details><summary>Show Init Output</summary>
+
             ```terraform
             ${{ needs.terraform.outputs.init_stdout }}
             ```
+
             </details>
 
             Terraform Format: `${{ needs.terraform.outputs.format_outcome }}` <details><summary>Show Format Output</summary>
+
             ```terraform
             ${{ needs.terraform.outputs.format_stdout }}
             ```
+
             </details>
 
             Terraform Validate: `${{ needs.terraform.outputs.validation_outcome }}` <details><summary>Show Validation Output</summary>
+
             ```terraform
             ${{ needs.terraform.outputs.validation_stdout }}
             ```
+
             </details>
 
             Terraform Plan: `${{ needs.terraform.outputs.plan_outcome }}` <details><summary>Show Plan Output</summary>
+
             ```terraform
             ${{ needs.terraform.outputs.plan_stdout }}
             ```
+            
             </details>
 
             Working directory saved to GH artifacts as `${{ inputs.pr_number }}-tfplan.zip`. [Link to the artifact (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)
