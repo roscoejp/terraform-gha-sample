@@ -5,16 +5,11 @@ on:
 
 concurrency: main
 
-env:
-  TF_ROOT_DIR: ./
-  TF_VERSION: "1.2.3"
-  ISSUE_NUMBER: ${{ github.event.pull_request.number }}
-
 jobs:
   plan:
     uses: ./.github/workflows/terraform-plan.yml
     with:
-      tf_root_dir: ${{ env.TF_ROOT_DIR }}
-      tf_version: ${{ env.TF_VERSION }}
-      pr_number: ${{ env.ISSUE_NUMBER }}
+      tf_root_dir: "./"
+      tf_version: "1.2.3"
+      pr_number: ${{ github.event.pull_request.number }}
 
