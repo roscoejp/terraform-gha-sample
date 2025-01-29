@@ -34,28 +34,19 @@ jobs:
     outputs:
       comment-id: ${{ steps.update_comment.outputs.comment-id }}
     steps:
-      - name: Find Comment
-        uses: peter-evans/find-comment@v3
-        id: find_comment
+      - name: Update comment
+        uses: edumserrano/find-create-or-update-comment@v3
         with:
           issue-number: ${{ inputs.pr_number }}
-          comment-author: 'github-actions[bot]'
-          body-includes: Comment by GHA Apply Automation
-
-      - name: Create or update comment
-        id: update_comment
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          comment-id: ${{ steps.find_comment.outputs.comment-id }}
-          issue-number: ${{ inputs.pr_number }}
+          body-includes: "<!-- Comment by GHA Apply Automation -->"
+          comment-author: "github-actions[bot]"
           body: |
-            <sub>*Comment by GHA Apply Automation. Do not remove.*</sub>
+            <!-- Comment by GHA Apply Automation -->
             <sub>*Push Author: @${{ github.actor }}, Triggering Action: `${{ github.event_name }}`, Working Directory: `${{ inputs.tf_root_dir }}`, Workflow Name: `${{ github.workflow }}`*</sub>
             Running Terraform Apply via automation. [Link to the run (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
           edit-mode: replace
-  
+
   terraform:
-    name: Terraform Apply
     runs-on: ubuntu-latest
     defaults:
       run:
@@ -67,7 +58,7 @@ jobs:
       apply_outcome: ${{ steps.apply.outcome }}
       apply_stdout: ${{ steps.apply.stdout }}
 
-    steps:
+    steps: # continue-on-error for some of these since we _want_ the output. Fail at end of job.
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -88,34 +79,30 @@ jobs:
         id: apply
         run: terraform apply -input=false -no-color tfplan
         continue-on-error: true
- 
+
   end:
+    needs: terraform
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
     steps:
-      - name: Create or update comment
-        id: update_comment
-        uses: peter-evans/create-or-update-comment@v4
+      - name: Update comment
+        uses: edumserrano/find-create-or-update-comment@v3
         with:
-          comment-id: ${{ needs.start.outputs.comment-id }}
           issue-number: ${{ inputs.pr_number }}
+          body-includes: "<!-- Comment by GHA Apply Automation -->"
+          comment-author: "github-actions[bot]"
           body: |
-            Terraform Apply: `${{ needs.terraform.outputs.apply_outcome }}`
-
-            <details><summary>Show Apply Output</summary>
-
+            Terraform Apply: `${{ needs.terraform.outputs.apply_outcome }}` <details><summary>Show Apply Output</summary>
             ```terraform
             ${{ needs.terraform.outputs.apply_stdout }}
             ```
-
             </details>
 
-            <sub>Issue comments created by [create-or-update-comment](https://github.com/peter-evans/create-or-update-comment)</sub>
+            <sub>Issue comments created by [find-create-or-update-comment](https://github.com/marketplace/actions/find-create-or-update-comment)</sub>
           edit-mode: append
-      
+
       - name: Fail workflow on apply failure/skip
         if: needs.terraform.outputs.apply_outcome != 'success'
-        run: |
-          exit 1
+        run: exit 1

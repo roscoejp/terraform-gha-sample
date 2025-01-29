@@ -1,6 +1,6 @@
 name: Run Terraform plan on PR open
 
-on: 
+on:
   pull_request:
 
 concurrency: main
@@ -12,4 +12,3 @@ jobs:
       tf_root_dir: "./"
       tf_version: "1.2.3"
       pr_number: ${{ github.event.pull_request.number }}
-

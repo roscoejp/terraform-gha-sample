@@ -5,7 +5,7 @@ on:
     types:
       - closed
     branches:
-      - main  # merges have the ref of the merged-into branch
+      - main # merges have the ref of the merged-into branch
 
 concurrency: main
 
@@ -16,4 +16,3 @@ jobs:
       tf_root_dir: "./"
       tf_version: "1.2.3"
       pr_number: ${{ github.event.pull_request.number }}
-

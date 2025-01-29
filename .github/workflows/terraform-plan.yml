@@ -20,7 +20,7 @@ on:
     outputs: # Map the workflow outputs to job outputs
       init_outcome:
         description: "Outcome of the Terraform init command"
-        value: ${{ jobs.terraform.outputs.init_outcome }}     
+        value: ${{ jobs.terraform.outputs.init_outcome }}
       init_stdout:
         description: "STDOUT of the Terraform init command"
         value: ${{ jobs.terraform.outputs.init_stdout }}
@@ -52,22 +52,14 @@ jobs:
     outputs:
       comment-id: ${{ steps.update_comment.outputs.comment-id }}
     steps:
-      - name: Find Comment
-        uses: peter-evans/find-comment@v3
-        id: find_comment
+      - name: Update comment
+        uses: edumserrano/find-create-or-update-comment@v3
         with:
           issue-number: ${{ inputs.pr_number }}
-          comment-author: 'github-actions[bot]'
-          body-includes: Comment by GHA Plan Automation
-
-      - name: Create or update comment
-        id: update_comment
-        uses: peter-evans/create-or-update-comment@v4
-        with:
-          comment-id: ${{ steps.find_comment.outputs.comment-id }}
-          issue-number: ${{ inputs.pr_number }}
+          body-includes: "<!-- Comment by GHA Plan Automation -->"
+          comment-author: "github-actions[bot]"
           body: |
-            <sub>*Comment by GHA Plan Automation. Do not remove.*</sub>
+            <!-- Comment by GHA Plan Automation -->
             <sub>*Push Author: @${{ github.actor }}, Triggering Action: `${{ github.event_name }}`, Working Directory: `${{ inputs.tf_root_dir }}`, Workflow Name: `${{ github.workflow }}`*</sub>
             Running Terraform Plan via automation. [Link to the run (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }})
           edit-mode: replace
@@ -90,7 +82,7 @@ jobs:
       plan_outcome: ${{ steps.plan.outcome }}
       plan_stdout: ${{ steps.plan.stdout }}
 
-    steps:
+    steps: # continue-on-error for some of these since we _want_ the output. Fail at end of job.
       - name: Checkout
         uses: actions/checkout@v4
 
@@ -129,67 +121,51 @@ jobs:
           name: ${{ inputs.pr_number }}-tfplan.zip
           path: ./
           if-no-files-found: error # will fail pipeline if nothing found
-  
+
   end:
+    needs: terraform
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pull-requests: write
     steps:
-      - name: Create or update comment
-        id: update_comment
-        uses: peter-evans/create-or-update-comment@v4
+      - name: Update comment
+        uses: edumserrano/find-create-or-update-comment@v3
         with:
-          comment-id: ${{ needs.start.outputs.comment-id }}
-          issue-number: ${{ inputs.pr_number }}
+          issue-number: ${{ github.event.issue.number }}
+          body-includes: "<!-- Comment by GHA Plan Automation -->"
+          comment-author: "github-actions[bot]"
           body: |
-            Terraform init: `${{ needs.terraform.outputs.init_outcome }}`
-
-            <details><summary>Show Init Output</summary>
-
-            ```
+            Terraform init: `${{ needs.terraform.outputs.init_outcome }}` <details><summary>Show Init Output</summary>
+            ```terraform
             ${{ needs.terraform.outputs.init_stdout }}
             ```
-
             </details>
 
-            Terraform Format: `${{ needs.terraform.outputs.format_outcome }}`
-
-            <details><summary>Show Format Output</summary>
-
-            ```
+            Terraform Format: `${{ needs.terraform.outputs.format_outcome }}` <details><summary>Show Format Output</summary>
+            ```terraform
             ${{ needs.terraform.outputs.format_stdout }}
             ```
-
             </details>
 
-            Terraform Validate: `${{ needs.terraform.outputs.validation_outcome }}`
-
-            <details><summary>Show Validation Output</summary>
-
-            ```
+            Terraform Validate: `${{ needs.terraform.outputs.validation_outcome }}` <details><summary>Show Validation Output</summary>
+            ```terraform
             ${{ needs.terraform.outputs.validation_stdout }}
             ```
-
             </details>
 
-            Terraform Plan: `${{ needs.terraform.outputs.plan_outcome }}`
-
-            <details><summary>Show Plan Output</summary>
-
+            Terraform Plan: `${{ needs.terraform.outputs.plan_outcome }}` <details><summary>Show Plan Output</summary>
             ```terraform
             ${{ needs.terraform.outputs.plan_stdout }}
             ```
-
             </details>
 
             Working directory saved to GH artifacts as `${{ inputs.pr_number }}-tfplan.zip`. [Link to the artifact (valid for 90 days by default)](${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}#artifacts)
 
             <sub>Pull Request created by [create-pull-request](https://github.com/peter-evans/create-pull-request])</sub>
-            <sub>Issue comments created by [create-or-update-comment](https://github.com/peter-evans/create-or-update-comment)</sub>
+            <sub>Issue comments created by [find-create-or-update-comment](https://github.com/marketplace/actions/find-create-or-update-comment)</sub>
           edit-mode: append
 
       - name: Fail workflow on plan failure/skip
         if: needs.terraform.outputs.plan_outcome != 'success'
-        run: |
-          exit 1
+        run: exit 1
