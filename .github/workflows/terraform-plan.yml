@@ -120,7 +120,7 @@ jobs:
         if: steps.plan.outcome == 'success' # only save if plan passes
         uses: actions/upload-artifact@v3
         with:
-          name: ${{ inputs.pr_number }}-tfplan.zip
+          name: ${{ inputs.pr_number }}-tfplan.zip # artifacts always use PR #
           path: ./
           if-no-files-found: error # will fail pipeline if nothing found
 

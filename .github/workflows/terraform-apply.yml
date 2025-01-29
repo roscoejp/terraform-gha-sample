@@ -72,9 +72,10 @@ jobs:
       - name: Download Plan Artifact
         uses: dawidd6/action-download-artifact@v2
         with:
-          workflow: terraform-plan.yml
-          pr: ${{ inputs.pr_number }}
-          name: ${{ inputs.pr_number }}-tfplan.zip
+          workflow-search: yes
+          workflow_conclusion: success
+          name: ${{ inputs.pr_number }}-tfplan.zip # artifacts always use PR #
+          name_is_regexp: false
           use_unzip: true
 
       - name: Apply
