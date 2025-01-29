@@ -12,6 +12,9 @@ concurrency: main
 jobs:
   apply:
     uses: ./.github/workflows/terraform-apply.yml
+    permissions:
+      contents: read
+      pull-requests: write
     with:
       tf_root_dir: "./"
       tf_version: "1.2.3"

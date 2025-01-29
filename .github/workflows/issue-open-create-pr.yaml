@@ -79,6 +79,9 @@ jobs:
   plan: # call the plan job since PRs created using the default token don't trigger other workflows
     needs: create_pr
     uses: ./.github/workflows/terraform-plan.yml
+    permissions:
+      contents: read
+      pull-requests: write
     with:
       tf_root_dir: "./"
       tf_version: "1.2.3"
